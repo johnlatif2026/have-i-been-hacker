@@ -5,7 +5,7 @@ const fs = require('fs');
 const app = express();
 const PORT = 3000;
 
-let emails = [];
+let emails = []; // [{ email: 'example@email.com', time: '2025-06-26T12:00:00Z' }]
 const statusMap = {}; // لتخزين حالة كل بريد
 
 app.use(express.json());
@@ -14,9 +14,9 @@ app.use(express.static(__dirname));
 // استلام البريد من المستخدم
 app.post('/submit-email', (req, res) => {
   const { email } = req.body;
-  if (email && !emails.includes(email)) {
-    emails.push(email);
-    console.log("تم استلام بريد:", email);
+  if (email && !emails.find(e => e.email === email)) {
+    emails.push({ email, time: new Date().toISOString() });
+    console.log("📥 تم استلام بريد:", email);
   }
   res.sendStatus(200);
 });
@@ -29,9 +29,9 @@ app.get('/emails', (req, res) => {
 // حذف بريد إلكتروني
 app.post('/delete-email', (req, res) => {
   const { email } = req.body;
-  emails = emails.filter(e => e !== email);
+  emails = emails.filter(e => e.email !== email);
   delete statusMap[email]; // حذف الحالة أيضًا إن وجدت
-  console.log("تم حذف البريد:", email);
+  console.log("🗑️ تم حذف البريد:", email);
   res.sendStatus(200);
 });
 
