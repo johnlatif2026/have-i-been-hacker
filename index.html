@@ -99,7 +99,7 @@ body.dark ul li {
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ email })
       });
-      alert("تم إرسال بريدك بنجاح!");
+      alert("تم إرسال بريدك بنجاح! برجاء الانتظار 5 ثواني");
       localStorage.setItem('submittedEmail', email);
       e.target.reset();
     });
