@@ -3,74 +3,87 @@
 <head>
   <meta charset="UTF-8">
   <title>لوحة تحكم المشرف</title>
-      <style>
+  <style>
     body {
-  font-family: "Tahoma", sans-serif;
-  margin: 0;
-  padding: 0;
-  background: #f7f7f7;
-  color: #222;
-  transition: all 0.3s ease;
-}
+      font-family: "Tahoma", sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f7f7f7;
+      color: #222;
+      transition: all 0.3s ease;
+    }
 
-body.dark {
-  background: #121212;
-  color: #f0f0f0;
-}
+    body.dark {
+      background: #121212;
+      color: #f0f0f0;
+    }
 
-.container {
-  max-width: 500px;
-  margin: 60px auto;
-  padding: 20px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-}
+    .container {
+      max-width: 600px;
+      margin: 60px auto;
+      padding: 20px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
 
-body.dark .container {
-  background: #1e1e1e;
-}
+    body.dark .container {
+      background: #1e1e1e;
+    }
 
-input[type="email"], button {
-  width: 100%;
-  padding: 12px;
-  margin-top: 10px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  font-size: 16px;
-}
+    button {
+      padding: 6px 10px;
+      margin: 4px 4px 4px 0;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+    }
 
-button {
-  background-color: #007bff;
-  color: white;
-  cursor: pointer;
-  border: none;
-}
+    button:hover {
+      opacity: 0.9;
+    }
 
-button:hover {
-  background-color: #0056b3;
-}
+    button.toggle-theme {
+      background: #666;
+      color: white;
+      margin-bottom: 10px;
+    }
 
-button.toggle-theme {
-  background: #666;
-  float: left;
-  margin-bottom: 10px;
-}
+    button.delete-btn { background-color: #dc3545; color: white; }
+    button.safe-btn { background-color: #28a745; color: white; }
+    button.breach-btn { background-color: #ffc107; color: black; }
 
-ul {
-  padding: 0;
-  list-style: none;
-}
+    ul {
+      padding: 0;
+      list-style: none;
+    }
 
-ul li {
-  padding: 8px;
-  border-bottom: 1px solid #ddd;
-}
+    ul li {
+      padding: 10px;
+      border-bottom: 1px solid #ddd;
+    }
 
-body.dark ul li {
-  border-color: #333;
-}
+    body.dark ul li {
+      border-color: #333;
+    }
 
+    .status-label {
+      margin-right: 10px;
+      font-weight: bold;
+    }
+
+    .status-safe {
+      color: green;
+    }
+
+    .status-breached {
+      color: red;
+    }
+
+    .status-unknown {
+      color: gray;
+    }
   </style>
 </head>
 <body>
@@ -89,11 +102,32 @@ body.dark ul li {
       const data = await res.json();
       const emailList = document.getElementById('emailList');
       emailList.innerHTML = '';
-      data.forEach(({ email, time }, index) => {
-        const li = document.createElement('li');
-        li.innerHTML = `<strong>${email}</strong> - <small>${new Date(time).toLocaleString('ar-EG')}</small>`;
 
+      for (const { email, time } of data) {
+        const li = document.createElement('li');
+
+        // استعلام الحالة
+        const statusRes = await fetch(`/check-status?email=${encodeURIComponent(email)}`);
+        const { status } = await statusRes.json();
+
+        let statusText = '';
+        if (status === 'safe') {
+          statusText = '<span class="status-label status-safe">✅ آمن</span>';
+        } else if (status === 'breached') {
+          statusText = '<span class="status-label status-breached">🔴 مخترق</span>';
+        } else {
+          statusText = '<span class="status-label status-unknown">❔ غير محدد</span>';
+        }
+
+        li.innerHTML = `
+          <strong>${email}</strong> - 
+          <small>${new Date(time).toLocaleString('ar-EG')}</small> - 
+          ${statusText}
+        `;
+
+        // زرار حذف
         const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'delete-btn';
         deleteBtn.textContent = 'حذف';
         deleteBtn.onclick = async () => {
           await fetch('/delete-email', {
@@ -104,7 +138,9 @@ body.dark ul li {
           fetchEmails();
         };
 
+        // زر أمان
         const safeBtn = document.createElement('button');
+        safeBtn.className = 'safe-btn';
         safeBtn.textContent = 'أمان';
         safeBtn.onclick = async () => {
           await fetch('/notify-status', {
@@ -112,9 +148,12 @@ body.dark ul li {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, status: 'safe' })
           });
+          fetchEmails();
         };
 
+        // زر مخترق
         const breachedBtn = document.createElement('button');
+        breachedBtn.className = 'breach-btn';
         breachedBtn.textContent = 'مخترق';
         breachedBtn.onclick = async () => {
           await fetch('/notify-status', {
@@ -122,13 +161,15 @@ body.dark ul li {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, status: 'breached' })
           });
+          fetchEmails();
         };
 
         li.appendChild(deleteBtn);
         li.appendChild(safeBtn);
         li.appendChild(breachedBtn);
+
         emailList.appendChild(li);
-      });
+      }
     }
 
     setInterval(fetchEmails, 2000);
